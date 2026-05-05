@@ -34,3 +34,12 @@ export const SIMULATED_USERS: SimulatedUser[] = [
   { id: 'user-2', name: 'Bob', color: '#e07b39' },
   { id: 'user-3', name: 'Carol', color: '#5cb85c' },
 ];
+
+export type UserRole = 'admin' | 'user';
+
+export interface AuthUser {
+  id: string;
+  username: string;
+  role: UserRole;
+  color: string;
+}
