@@ -20,6 +20,10 @@ type BroadcastMsg =
 interface StoreState {
   documentList: XMLDocumentMeta[];
   document: XMLDocument | null;
+  /** Last content that was successfully persisted to storage. Used to
+   *  distinguish a genuine remote change (poll) from an echo of our own
+   *  last save, so that in-progress local edits are never overwritten. */
+  committedContent: string | null;
   currentUser: string;
   activeAnnotationId: string | null;
   loading: boolean;
@@ -58,6 +62,7 @@ export const useStore = create<StoreState>((set, get) => {
   return {
     documentList: [],
     document: null,
+    committedContent: null,
     currentUser: 'Alice',
     activeAnnotationId: null,
     loading: false,
@@ -71,7 +76,7 @@ export const useStore = create<StoreState>((set, get) => {
     selectDocument: async (id) => {
       set({ loading: true });
       const doc = await getDocument(id);
-      set({ document: doc, loading: false });
+      set({ document: doc, committedContent: doc?.content ?? null, loading: false });
     },
 
     deselectDocument: () => {
@@ -105,7 +110,10 @@ export const useStore = create<StoreState>((set, get) => {
       const { document, currentUser } = get();
       if (!document) return;
       const updated = await updateDocument(document.id, document.content);
-      set((state) => ({ document: state.document ? { ...state.document, updatedAt: updated.updatedAt } : null }));
+      set((state) => ({
+        document: state.document ? { ...state.document, updatedAt: updated.updatedAt } : null,
+        committedContent: document.content,
+      }));
       const msg: BroadcastMsg = {
         type: 'DOC_UPDATE',
         docId: document.id,
@@ -148,11 +156,15 @@ export const useStore = create<StoreState>((set, get) => {
     setActiveAnnotation: (id) => set({ activeAnnotationId: id }),
 
     applyBroadcast: (msg) => {
-      const { document } = get();
+      const { document, committedContent } = get();
       if (msg.type === 'DOC_UPDATE') {
         if (document?.id !== msg.docId) return;
+        // Skip if this is merely echoing back our own last committed save.
+        // This prevents the polling loop from overwriting unsaved local edits.
+        if (msg.content === committedContent) return;
         set((state) => ({
           document: state.document ? { ...state.document, content: msg.content } : null,
+          committedContent: msg.content,
         }));
       } else if (msg.type === 'ANNOTATION_ADD') {
         if (document?.id !== msg.docId) return;
