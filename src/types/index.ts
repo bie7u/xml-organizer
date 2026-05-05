@@ -52,3 +52,9 @@ export interface AuthUser {
   role: UserRole;
   color: string;
 }
+
+export interface PresenceUser {
+  username: string;
+  color: string;
+  status: 'viewing' | 'editing';
+}

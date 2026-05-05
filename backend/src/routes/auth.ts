@@ -37,7 +37,7 @@ router.post('/login', loginRateLimiter, async (req, res, next) => {
       return;
     }
 
-    const token = signToken({ userId: user.id, username: user.username, role: user.role });
+    const token = signToken({ userId: user.id, username: user.username, role: user.role, color: user.color });
     res.json({
       token,
       user: { id: user.id, username: user.username, role: user.role, color: user.color },

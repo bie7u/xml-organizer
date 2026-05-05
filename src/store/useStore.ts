@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Annotation, XMLDocument, XMLDocumentMeta } from '../types';
+import type { Annotation, XMLDocument, XMLDocumentMeta, PresenceUser } from '../types';
 import {
   listDocuments,
   getDocument,
@@ -14,7 +14,8 @@ import { sendToServer } from '../ws/client';
 export type BroadcastMsg =
   | { type: 'DOC_UPDATE'; docId: string; content: string; author: string }
   | { type: 'ANNOTATION_ADD'; docId: string; annotation: Annotation }
-  | { type: 'ANNOTATION_DELETE'; docId: string; id: string };
+  | { type: 'ANNOTATION_DELETE'; docId: string; id: string }
+  | { type: 'PRESENCE_UPDATE'; docId: string; users: PresenceUser[] };
 
 interface StoreState {
   documentList: XMLDocumentMeta[];
@@ -26,6 +27,8 @@ interface StoreState {
   currentUser: string;
   activeAnnotationId: string | null;
   loading: boolean;
+  /** Users currently viewing/editing the open document (includes self). */
+  viewers: PresenceUser[];
 
   // Actions
   loadDocumentList: () => Promise<void>;
@@ -50,6 +53,7 @@ export const useStore = create<StoreState>((set, get) => {
     currentUser: 'Alice',
     activeAnnotationId: null,
     loading: false,
+    viewers: [],
 
     loadDocumentList: async () => {
       set({ loading: true });
@@ -64,7 +68,7 @@ export const useStore = create<StoreState>((set, get) => {
     },
 
     deselectDocument: () => {
-      set({ document: null });
+      set({ document: null, viewers: [] });
     },
 
     createDocument: async (name) => {
@@ -170,6 +174,9 @@ export const useStore = create<StoreState>((set, get) => {
               }
             : null,
         }));
+      } else if (msg.type === 'PRESENCE_UPDATE') {
+        if (document?.id !== msg.docId) return;
+        set({ viewers: msg.users });
       }
     },
   };

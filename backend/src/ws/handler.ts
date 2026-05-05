@@ -10,14 +10,22 @@ type C2SMsg =
   | { type: 'auth'; token: string }
   | { type: 'join_doc'; docId: string }
   | { type: 'leave_doc'; docId: string }
+  | { type: 'presence_typing'; docId: string }
   | { type: 'doc_update'; docId: string; content: string; author: string }
   | { type: 'annotation_add'; docId: string; annotation: Annotation }
   | { type: 'annotation_delete'; docId: string; annotationId: string };
+
+interface PresenceUser {
+  username: string;
+  color: string;
+  status: 'viewing' | 'editing';
+}
 
 type S2CMsg =
   | { type: 'DOC_UPDATE'; docId: string; content: string; author: string }
   | { type: 'ANNOTATION_ADD'; docId: string; annotation: Annotation }
   | { type: 'ANNOTATION_DELETE'; docId: string; id: string }
+  | { type: 'PRESENCE_UPDATE'; docId: string; users: PresenceUser[] }
   | { type: 'error'; message: string };
 
 // ── Room registry ─────────────────────────────────────────────────────────────
@@ -29,8 +37,12 @@ const rooms = new Map<string, Set<WebSocket>>();
 interface ClientMeta {
   user: JwtPayload | null;
   docId: string | null;
+  status: 'viewing' | 'editing';
+  typingTimer: ReturnType<typeof setTimeout> | null;
 }
 const clientMeta = new WeakMap<WebSocket, ClientMeta>();
+
+const TYPING_TIMEOUT_MS = 2000;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -52,23 +64,60 @@ function broadcast(docId: string, msg: S2CMsg, exclude?: WebSocket): void {
   }
 }
 
+function buildPresenceList(docId: string): PresenceUser[] {
+  const room = rooms.get(docId);
+  if (!room) return [];
+  const users: PresenceUser[] = [];
+  for (const client of room) {
+    const meta = clientMeta.get(client);
+    if (meta?.user) {
+      users.push({ username: meta.user.username, color: meta.user.color, status: meta.status });
+    }
+  }
+  return users;
+}
+
+function broadcastPresence(docId: string): void {
+  const room = rooms.get(docId);
+  if (!room) return;
+  const users = buildPresenceList(docId);
+  const payload = JSON.stringify({ type: 'PRESENCE_UPDATE', docId, users } satisfies S2CMsg);
+  for (const client of room) {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(payload);
+    }
+  }
+}
+
 function joinRoom(ws: WebSocket, docId: string): void {
   leaveCurrentRoom(ws);
   const meta = clientMeta.get(ws);
-  if (meta) meta.docId = docId;
+  if (meta) {
+    meta.docId = docId;
+    meta.status = 'viewing';
+  }
   if (!rooms.has(docId)) rooms.set(docId, new Set());
   rooms.get(docId)!.add(ws);
+  broadcastPresence(docId);
 }
 
 function leaveCurrentRoom(ws: WebSocket): void {
   const meta = clientMeta.get(ws);
   if (!meta?.docId) return;
-  const room = rooms.get(meta.docId);
+  const prevDocId = meta.docId;
+  const room = rooms.get(prevDocId);
   if (room) {
     room.delete(ws);
-    if (room.size === 0) rooms.delete(meta.docId);
+    if (room.size === 0) rooms.delete(prevDocId);
+  }
+  if (meta.typingTimer) {
+    clearTimeout(meta.typingTimer);
+    meta.typingTimer = null;
   }
   meta.docId = null;
+  meta.status = 'viewing';
+  // notify remaining users that this user left
+  broadcastPresence(prevDocId);
 }
 
 // ── Setup ─────────────────────────────────────────────────────────────────────
@@ -77,7 +126,7 @@ export function setupWs(server: Server): void {
   const wss = new WebSocketServer({ server, path: '/ws' });
 
   wss.on('connection', (ws: WebSocket) => {
-    clientMeta.set(ws, { user: null, docId: null });
+    clientMeta.set(ws, { user: null, docId: null, status: 'viewing', typingTimer: null });
 
     ws.on('message', (raw) => {
       let msg: C2SMsg;
@@ -114,6 +163,20 @@ export function setupWs(server: Server): void {
 
       if (msg.type === 'leave_doc') {
         leaveCurrentRoom(ws);
+        return;
+      }
+
+      // ── Presence ──────────────────────────────────────────────────────────
+      if (msg.type === 'presence_typing') {
+        if (!meta.docId) return;
+        meta.status = 'editing';
+        if (meta.typingTimer) clearTimeout(meta.typingTimer);
+        meta.typingTimer = setTimeout(() => {
+          meta.status = 'viewing';
+          meta.typingTimer = null;
+          if (meta.docId) broadcastPresence(meta.docId);
+        }, TYPING_TIMEOUT_MS);
+        broadcastPresence(meta.docId);
         return;
       }
 

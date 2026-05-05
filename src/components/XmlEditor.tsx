@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useCallback, useMemo, useState } from 'react';
 import { useStore } from '../store/useStore';
 import { extractTags, lineToOffset, offsetToLine } from '../utils/xmlParser';
+import { sendToServer } from '../ws/client';
 import type { Annotation, RangeTarget } from '../types';
 import { XmlPreview } from './XmlPreview';
 
@@ -26,6 +27,7 @@ function validateXml(content: string): string | null {
 export const XmlEditor: React.FC<Props> = ({ onRequestAnnotation }) => {
   const [mode, setMode] = useState<EditorMode>('edit');
   const content = useStore((s) => s.document?.content ?? '');
+  const docId = useStore((s) => s.document?.id ?? null);
   const annotations = useStore((s) => s.document?.annotations ?? []);
   const activeAnnotationId = useStore((s) => s.activeAnnotationId);
   const setContent = useStore((s) => s.setContent);
@@ -106,8 +108,9 @@ export const XmlEditor: React.FC<Props> = ({ onRequestAnnotation }) => {
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       setContent(e.target.value);
+      if (docId) sendToServer({ type: 'presence_typing', docId });
     },
-    [setContent],
+    [setContent, docId],
   );
 
   const handleBlur = useCallback(() => {

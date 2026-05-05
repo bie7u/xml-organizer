@@ -9,6 +9,7 @@ import { XmlEditor } from './components/XmlEditor';
 import { AnnotationPanel } from './components/AnnotationPanel';
 import { AnnotationForm } from './components/AnnotationForm';
 import { AdminPanel } from './components/AdminPanel';
+import { PresenceBar } from './components/PresenceBar';
 import type { Annotation, AnnotationType, AnnotationTarget } from './types';
 
 interface PendingAnnotation {
@@ -90,6 +91,7 @@ const App: React.FC = () => {
           {document && (
             <span className="app-subtitle doc-name-subtitle">{document.name}</span>
           )}
+          {document && <PresenceBar />}
         </div>
 
         {/* User info + actions */}

@@ -63,7 +63,8 @@ export function useWebSocket(): void {
           if (
             msg.type === 'DOC_UPDATE' ||
             msg.type === 'ANNOTATION_ADD' ||
-            msg.type === 'ANNOTATION_DELETE'
+            msg.type === 'ANNOTATION_DELETE' ||
+            msg.type === 'PRESENCE_UPDATE'
           ) {
             applyBroadcast(msg);
           }

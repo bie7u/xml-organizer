@@ -1349,3 +1349,63 @@ html, body, #root {
   color: var(--danger);
   font-weight: 600;
 }
+
+/* ============================================================
+   Presence Bar
+   ============================================================ */
+.presence-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 10px;
+  padding: 3px 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.presence-user {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: var(--radius);
+  background: transparent;
+  transition: background 0.15s;
+}
+
+.presence-user.presence-editing {
+  background: rgba(79, 134, 198, 0.12);
+}
+
+.presence-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.62rem;
+  flex-shrink: 0;
+}
+
+.presence-name {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-strong);
+  white-space: nowrap;
+}
+
+.presence-status {
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.presence-status.presence-status-editing {
+  color: var(--accent);
+  font-weight: 600;
+}
+
