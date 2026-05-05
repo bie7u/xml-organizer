@@ -165,11 +165,14 @@ router.post('/:id/annotations', async (req, res, next) => {
       res.status(400).json({ message: 'id, type, and text are required' });
       return;
     }
+    // Author is always the authenticated user – client-supplied value is ignored
+    const author = req.user!.username;
+    const createdAt = new Date().toISOString();
     await pool.query(
       'INSERT INTO annotations (id, doc_id, type, target, text, author, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-      [ann.id, req.params.id, ann.type, JSON.stringify(ann.target), ann.text, ann.author, ann.createdAt],
+      [ann.id, req.params.id, ann.type, JSON.stringify(ann.target), ann.text, author, createdAt],
     );
-    res.status(201).json(ann);
+    res.status(201).json({ ...ann, author, createdAt });
   } catch (err) {
     next(err);
   }

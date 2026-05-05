@@ -2,7 +2,6 @@ import React, { useState, useMemo } from 'react';
 import { useStore } from '../store/useStore';
 import { extractTags } from '../utils/xmlParser';
 import type { Annotation, AnnotationType, AnnotationTarget, RangeTarget } from '../types';
-import { SIMULATED_USERS } from '../types';
 
 interface Props {
   prefillType?: AnnotationType;
@@ -36,7 +35,6 @@ export const AnnotationForm: React.FC<Props> = ({ prefillType, prefillTarget, on
     prefillType === 'range' ? (prefillTarget as RangeTarget).end : 0,
   );
   const [text, setText] = useState('');
-  const [author, setAuthor] = useState(currentUser);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -64,7 +62,7 @@ export const AnnotationForm: React.FC<Props> = ({ prefillType, prefillTarget, on
       type,
       target: buildTarget(),
       text: text.trim(),
-      author,
+      author: currentUser,
       createdAt: new Date().toISOString(),
     };
     await addAnnotationAction(annotation);
@@ -139,17 +137,6 @@ export const AnnotationForm: React.FC<Props> = ({ prefillType, prefillTarget, on
             </label>
           </>
         )}
-
-        <label className="form-row">
-          <span>Author</span>
-          <select value={author} onChange={(e) => setAuthor(e.target.value)}>
-            {SIMULATED_USERS.map((u) => (
-              <option key={u.id} value={u.name}>
-                {u.name}
-              </option>
-            ))}
-          </select>
-        </label>
 
         <label className="form-row form-row--col">
           <span>Comment</span>
