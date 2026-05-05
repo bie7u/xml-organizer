@@ -50,8 +50,17 @@ export async function initDb(): Promise<void> {
       role          TEXT NOT NULL DEFAULT 'user',
       color         TEXT NOT NULL DEFAULT '#4f86c6',
       created_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
-    );
+    );`);
 
+  // Migrate: add color column for databases created before this feature was introduced.
+  // SQLite's ALTER TABLE does not support IF NOT EXISTS, so we catch the error instead.
+  try {
+    db.exec(`ALTER TABLE users ADD COLUMN color TEXT NOT NULL DEFAULT '#4f86c6'`);
+  } catch {
+    // Column already exists – nothing to do.
+  }
+
+  db.exec(`
     CREATE TABLE IF NOT EXISTS documents (
       id         TEXT PRIMARY KEY,
       name       TEXT NOT NULL,

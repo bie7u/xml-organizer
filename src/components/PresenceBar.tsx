@@ -20,7 +20,7 @@ export const PresenceBar: React.FC = () => {
           >
             <span
               className="presence-avatar"
-              style={{ backgroundColor: v.color }}
+              style={{ backgroundColor: v.color ?? '#4f86c6' }}
             >
               {v.username[0].toUpperCase()}
             </span>

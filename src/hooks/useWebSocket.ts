@@ -59,7 +59,11 @@ export function useWebSocket(): void {
 
       ws.onmessage = (event: MessageEvent) => {
         try {
-          const msg = JSON.parse(event.data as string) as BroadcastMsg;
+          const msg = JSON.parse(event.data as string) as BroadcastMsg | { type: 'error'; message: string };
+          if (msg.type === 'error') {
+            console.warn('[WS] server error:', msg.message);
+            return;
+          }
           if (
             msg.type === 'DOC_UPDATE' ||
             msg.type === 'ANNOTATION_ADD' ||

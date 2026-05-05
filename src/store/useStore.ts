@@ -62,7 +62,7 @@ export const useStore = create<StoreState>((set, get) => {
     },
 
     selectDocument: async (id) => {
-      set({ loading: true });
+      set({ loading: true, viewers: [] });
       const doc = await getDocument(id);
       set({ document: doc, committedContent: doc?.content ?? null, loading: false });
     },
