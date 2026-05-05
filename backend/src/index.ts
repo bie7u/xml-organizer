@@ -2,6 +2,7 @@ import 'dotenv/config';
 import http from 'http';
 import express from 'express';
 import cors from 'cors';
+import rateLimit from 'express-rate-limit';
 import { initDb } from './db';
 import { seedIfEmpty } from './seed';
 import authRouter from './routes/auth';
@@ -16,6 +17,17 @@ const app = express();
 
 app.use(cors({ origin: CORS_ORIGIN, credentials: true }));
 app.use(express.json());
+
+// General rate limiter – 300 requests per 15 minutes per IP
+app.use(
+  '/api',
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 300,
+    standardHeaders: true,
+    legacyHeaders: false,
+  }),
+);
 
 app.use('/api/auth', authRouter);
 app.use('/api/documents', documentsRouter);

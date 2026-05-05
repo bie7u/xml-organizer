@@ -55,21 +55,21 @@ const SEED_DOCS = [
 ] as const;
 
 export async function seedIfEmpty(): Promise<void> {
-  const { rows } = pool.query<{ count: number }>('SELECT COUNT(*) as count FROM users');
+  const { rows } = await pool.query<{ count: number }>('SELECT COUNT(*) as count FROM users');
   if (rows[0].count > 0) return;
 
   console.log('Seeding database with default users and documents…');
 
   for (const u of SEED_USERS) {
     const hash = await bcrypt.hash(u.password, 10);
-    pool.query(
+    await pool.query(
       'INSERT INTO users (id, username, password_hash, role, color) VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING',
       [u.id, u.username, hash, u.role, u.color],
     );
   }
 
   for (const d of SEED_DOCS) {
-    pool.query(
+    await pool.query(
       'INSERT INTO documents (id, name, content) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',
       [d.id, d.name, d.content],
     );
