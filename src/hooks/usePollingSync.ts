@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useStore } from '../store/useStore';
-import { getDocument } from '../api/mockApi';
+import { getDocument } from '../api/httpApi';
 
 /**
  * Polls localStorage every `intervalMs` to detect changes made in other

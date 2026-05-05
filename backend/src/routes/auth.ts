@@ -1,12 +1,22 @@
 import { Router } from 'express';
 import bcrypt from 'bcrypt';
+import rateLimit from 'express-rate-limit';
 import { pool } from '../db';
 import { signToken, verifyToken } from '../middleware/auth';
+
+// Limit login attempts to 10 per 15 minutes per IP to prevent brute-force
+const loginRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many login attempts. Please try again later.' },
+});
 
 const router = Router();
 
 // POST /api/auth/login
-router.post('/login', async (req, res, next) => {
+router.post('/login', loginRateLimiter, async (req, res, next) => {
   try {
     const { username, password } = req.body as { username?: string; password?: string };
     if (!username || !password) {
