@@ -24,11 +24,11 @@ export const AdminPanel: React.FC<Props> = ({ onClose }) => {
   }, [loadUsers]);
 
   const handleAdd = useCallback(
-    (e: React.FormEvent) => {
+    async (e: React.FormEvent) => {
       e.preventDefault();
       setFormError(null);
       setFormSuccess(null);
-      const err = addUser(newUsername, newPassword, newRole);
+      const err = await addUser(newUsername, newPassword, newRole);
       if (err) {
         setFormError(err);
       } else {
@@ -42,9 +42,9 @@ export const AdminPanel: React.FC<Props> = ({ onClose }) => {
   );
 
   const handleRemove = useCallback(
-    (id: string, username: string) => {
+    async (id: string, username: string) => {
       if (!window.confirm(`Usunąć użytkownika "${username}"?`)) return;
-      const ok = removeUser(id);
+      const ok = await removeUser(id);
       if (!ok) {
         alert('Nie można usunąć ostatniego administratora.');
       }

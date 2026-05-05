@@ -8,11 +8,10 @@ import {
   updateDocument,
   addAnnotation,
   deleteAnnotation,
-} from '../api/mockApi';
+} from '../api/httpApi';
+import { sendToServer } from '../ws/client';
 
-const BROADCAST_CHANNEL = 'xml_organizer_sync';
-
-type BroadcastMsg =
+export type BroadcastMsg =
   | { type: 'DOC_UPDATE'; docId: string; content: string; author: string }
   | { type: 'ANNOTATION_ADD'; docId: string; annotation: Annotation }
   | { type: 'ANNOTATION_DELETE'; docId: string; id: string };
@@ -43,22 +42,7 @@ interface StoreState {
   applyBroadcast: (msg: BroadcastMsg) => void;
 }
 
-// BroadcastChannel for cross-tab/window sync
-let channel: BroadcastChannel | null = null;
-try {
-  channel = new BroadcastChannel(BROADCAST_CHANNEL);
-} catch {
-  // BroadcastChannel not supported
-}
-
 export const useStore = create<StoreState>((set, get) => {
-  // Wire up incoming broadcast messages
-  if (channel) {
-    channel.onmessage = (ev: MessageEvent<BroadcastMsg>) => {
-      get().applyBroadcast(ev.data);
-    };
-  }
-
   return {
     documentList: [],
     document: null,
@@ -114,13 +98,12 @@ export const useStore = create<StoreState>((set, get) => {
         document: state.document ? { ...state.document, updatedAt: updated.updatedAt } : null,
         committedContent: document.content,
       }));
-      const msg: BroadcastMsg = {
-        type: 'DOC_UPDATE',
+      sendToServer({
+        type: 'doc_update',
         docId: document.id,
         content: document.content,
         author: currentUser,
-      };
-      channel?.postMessage(msg);
+      });
     },
 
     addAnnotation: async (annotation) => {
@@ -132,8 +115,7 @@ export const useStore = create<StoreState>((set, get) => {
           ? { ...state.document, annotations: [...state.document.annotations, annotation] }
           : null,
       }));
-      const msg: BroadcastMsg = { type: 'ANNOTATION_ADD', docId: document.id, annotation };
-      channel?.postMessage(msg);
+      sendToServer({ type: 'annotation_add', docId: document.id, annotation });
     },
 
     removeAnnotation: async (id) => {
@@ -149,8 +131,7 @@ export const useStore = create<StoreState>((set, get) => {
           : null,
         activeAnnotationId: state.activeAnnotationId === id ? null : state.activeAnnotationId,
       }));
-      const msg: BroadcastMsg = { type: 'ANNOTATION_DELETE', docId: document.id, id };
-      channel?.postMessage(msg);
+      sendToServer({ type: 'annotation_delete', docId: document.id, annotationId: id });
     },
 
     setActiveAnnotation: (id) => set({ activeAnnotationId: id }),

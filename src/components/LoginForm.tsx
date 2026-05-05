@@ -4,14 +4,15 @@ import { useAuthStore } from '../store/useAuthStore';
 export const LoginForm: React.FC = () => {
   const login = useAuthStore((s) => s.login);
   const loginError = useAuthStore((s) => s.loginError);
+  const loginLoading = useAuthStore((s) => s.loginLoading);
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
   const handleSubmit = useCallback(
-    (e: React.FormEvent) => {
+    async (e: React.FormEvent) => {
       e.preventDefault();
-      login(username, password);
+      await login(username, password);
     },
     [login, username, password],
   );
@@ -35,6 +36,7 @@ export const LoginForm: React.FC = () => {
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             placeholder="np. admin"
+            disabled={loginLoading}
           />
         </div>
 
@@ -47,13 +49,14 @@ export const LoginForm: React.FC = () => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••"
+            disabled={loginLoading}
           />
         </div>
 
         {loginError && <p className="login-error">{loginError}</p>}
 
-        <button className="btn-primary login-submit" type="submit">
-          Zaloguj się
+        <button className="btn-primary login-submit" type="submit" disabled={loginLoading}>
+          {loginLoading ? 'Logowanie…' : 'Zaloguj się'}
         </button>
 
         <p className="login-hint">

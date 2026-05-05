@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useStore } from './store/useStore';
 import { useAuthStore } from './store/useAuthStore';
-import { usePollingSync } from './hooks/usePollingSync';
+import { useWebSocket } from './hooks/useWebSocket';
 import { LoginForm } from './components/LoginForm';
 import { DocumentList } from './components/DocumentList';
 import { XmlEditor } from './components/XmlEditor';
@@ -39,8 +39,8 @@ const App: React.FC = () => {
     if (currentAuth) loadDocumentList();
   }, [currentAuth, loadDocumentList]);
 
-  // Polling sync (fallback / additional sync)
-  usePollingSync(4000);
+  // WebSocket – real-time collaboration
+  useWebSocket();
 
   const openAnnotationForm = useCallback(
     (type: Annotation['type'], target: Annotation['target']) => {
