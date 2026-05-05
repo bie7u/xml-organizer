@@ -19,7 +19,7 @@ router.get('/', async (_req, res, next) => {
       id: string; name: string; updated_at: string; annotation_count: number;
     }>(`
       SELECT d.id, d.name, d.updated_at,
-             CAST(COUNT(a.id) AS INT) AS annotation_count
+             COUNT(a.id) AS annotation_count
       FROM documents d
       LEFT JOIN annotations a ON a.doc_id = d.id
       GROUP BY d.id
@@ -79,7 +79,7 @@ router.get('/:id', async (req, res, next) => {
     const doc = docRows[0];
 
     const { rows: annRows } = await pool.query<{
-      id: string; type: string; target: Annotation['target'];
+      id: string; type: string; target: string;
       text: string; author: string; created_at: string;
     }>(
       'SELECT id, type, target, text, author, created_at FROM annotations WHERE doc_id = $1 ORDER BY created_at',
@@ -93,7 +93,7 @@ router.get('/:id', async (req, res, next) => {
       annotations: annRows.map((r) => ({
         id: r.id,
         type: r.type,
-        target: r.target,
+        target: JSON.parse(r.target) as Annotation['target'],
         text: r.text,
         author: r.author,
         createdAt: r.created_at,
@@ -114,7 +114,7 @@ router.put('/:id', async (req, res, next) => {
       return;
     }
     const { rows } = await pool.query<{ updated_at: string }>(
-      "UPDATE documents SET content = $1, updated_at = NOW() WHERE id = $2 RETURNING updated_at",
+      "UPDATE documents SET content = $1, updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now') WHERE id = $2 RETURNING updated_at",
       [content, req.params.id],
     );
     if (!rows[0]) {
@@ -141,14 +141,15 @@ router.delete('/:id', requireAdmin, async (req, res, next) => {
 router.get('/:id/annotations', async (req, res, next) => {
   try {
     const { rows } = await pool.query<{
-      id: string; type: string; target: Annotation['target'];
+      id: string; type: string; target: string;
       text: string; author: string; created_at: string;
     }>(
       'SELECT id, type, target, text, author, created_at FROM annotations WHERE doc_id = $1 ORDER BY created_at',
       [req.params.id],
     );
     res.json(rows.map((r) => ({
-      id: r.id, type: r.type, target: r.target,
+      id: r.id, type: r.type,
+      target: JSON.parse(r.target) as Annotation['target'],
       text: r.text, author: r.author, createdAt: r.created_at,
     })));
   } catch (err) {

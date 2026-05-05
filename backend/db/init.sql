@@ -1,31 +1,31 @@
--- XML Organizer – database schema
--- Run once to initialise (or use docker-entrypoint-initdb.d)
+-- XML Organizer – SQLite schema
+-- This file is for reference only; the backend runs initDb() on startup.
 
 CREATE TABLE IF NOT EXISTS users (
-  id            VARCHAR(36)  PRIMARY KEY,
-  username      VARCHAR(100) UNIQUE NOT NULL,
-  password_hash VARCHAR(255) NOT NULL,
-  role          VARCHAR(10)  NOT NULL DEFAULT 'user',
-  color         VARCHAR(20)  NOT NULL DEFAULT '#4f86c6',
-  created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+  id            TEXT PRIMARY KEY,
+  username      TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  role          TEXT NOT NULL DEFAULT 'user',
+  color         TEXT NOT NULL DEFAULT '#4f86c6',
+  created_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 );
 
 CREATE TABLE IF NOT EXISTS documents (
-  id         VARCHAR(36)  PRIMARY KEY,
-  name       VARCHAR(255) NOT NULL,
-  content    TEXT         NOT NULL DEFAULT '',
-  created_at TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+  id         TEXT PRIMARY KEY,
+  name       TEXT NOT NULL,
+  content    TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+  updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 );
 
 CREATE TABLE IF NOT EXISTS annotations (
-  id         VARCHAR(36)  PRIMARY KEY,
-  doc_id     VARCHAR(36)  NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
-  type       VARCHAR(20)  NOT NULL,
-  target     JSONB        NOT NULL,
-  text       TEXT         NOT NULL,
-  author     VARCHAR(100) NOT NULL,
-  created_at TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+  id         TEXT PRIMARY KEY,
+  doc_id     TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+  type       TEXT NOT NULL,
+  target     TEXT NOT NULL,   -- JSON-encoded AnnotationTarget
+  text       TEXT NOT NULL,
+  author     TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_annotations_doc_id ON annotations(doc_id);

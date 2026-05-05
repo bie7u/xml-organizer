@@ -45,8 +45,8 @@ router.post('/', async (req, res, next) => {
       return;
     }
 
-    const { rows: countRows } = await pool.query<{ count: string }>('SELECT COUNT(*) FROM users');
-    const color = AVATAR_COLORS[parseInt(countRows[0].count, 10) % AVATAR_COLORS.length];
+    const { rows: countRows } = await pool.query<{ count: number }>('SELECT COUNT(*) as count FROM users');
+    const color = AVATAR_COLORS[countRows[0].count % AVATAR_COLORS.length];
     const hash = await bcrypt.hash(password, 10);
     const id = `u-${Date.now()}`;
 
@@ -74,10 +74,10 @@ router.delete('/:id', async (req, res, next) => {
       return;
     }
     if (target[0].role === 'admin') {
-      const { rows: admins } = await pool.query<{ count: string }>(
-        "SELECT COUNT(*) FROM users WHERE role = 'admin'",
+      const { rows: admins } = await pool.query<{ count: number }>(
+        "SELECT COUNT(*) as count FROM users WHERE role = 'admin'",
       );
-      if (parseInt(admins[0].count, 10) <= 1) {
+      if (admins[0].count <= 1) {
         res.status(400).json({ message: 'Nie można usunąć ostatniego administratora.' });
         return;
       }

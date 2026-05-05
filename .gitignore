@@ -1,4 +1,5 @@
-# Logs
+# SQLite database file created at runtime
+backend/data/
 logs
 *.log
 npm-debug.log*
