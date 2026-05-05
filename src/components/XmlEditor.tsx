@@ -45,6 +45,14 @@ export const XmlEditor: React.FC<Props> = ({ onRequestAnnotation }) => {
     return () => clearTimeout(tid);
   }, [content]);
 
+  // Auto-save while typing: persist + broadcast to other users after 500 ms of inactivity
+  useEffect(() => {
+    const tid = setTimeout(() => {
+      commitContent();
+    }, 500);
+    return () => clearTimeout(tid);
+  }, [content, commitContent]);
+
   // Build a set of highlighted line numbers from annotations
   const highlightedLines = useMemo(() => {
     const lines = new Set<number>();
@@ -228,7 +236,7 @@ export const XmlEditor: React.FC<Props> = ({ onRequestAnnotation }) => {
           <span className="footer-valid">✓ Poprawny XML</span>
         ) : null}
         {mode === 'edit' ? (
-          <span className="hint">Blur to save · Right-click to annotate</span>
+          <span className="hint">Auto-saves · Right-click to annotate</span>
         ) : (
           <span className="hint">Read-only · Switch to Edit to make changes</span>
         )}

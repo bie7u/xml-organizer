@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useStore } from './store/useStore';
 import { useAuthStore } from './store/useAuthStore';
 import { useWebSocket } from './hooks/useWebSocket';
+import { usePollingSync } from './hooks/usePollingSync';
 import { LoginForm } from './components/LoginForm';
 import { DocumentList } from './components/DocumentList';
 import { XmlEditor } from './components/XmlEditor';
@@ -41,6 +42,8 @@ const App: React.FC = () => {
 
   // WebSocket – real-time collaboration
   useWebSocket();
+  // Polling fallback – keeps content in sync if a WS message is missed
+  usePollingSync();
 
   const openAnnotationForm = useCallback(
     (type: Annotation['type'], target: Annotation['target']) => {
