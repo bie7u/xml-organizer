@@ -101,11 +101,12 @@ export const XmlEditor: React.FC<Props> = ({ onRequestAnnotation }) => {
     [content, onRequestAnnotation],
   );
 
-  // Render highlighted overlay
+  // Render line-number gutter + row-level highlight stripes.
+  // Text is NOT repeated here – only the gutter numbers and background colours.
   const renderHighlight = useCallback(() => {
     if (!content) return null;
     const lines = content.split('\n');
-    return lines.map((line, idx) => {
+    return lines.map((_line, idx) => {
       const lineNum = idx + 1;
       const isHighlighted = highlightedLines.has(lineNum);
       return (
@@ -114,7 +115,6 @@ export const XmlEditor: React.FC<Props> = ({ onRequestAnnotation }) => {
           className={`editor-line${isHighlighted ? ' line-annotated' : ''}`}
         >
           <span className="line-number">{lineNum}</span>
-          <span className="line-content">{line || ' '}</span>
         </div>
       );
     });
