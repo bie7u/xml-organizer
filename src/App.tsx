@@ -3,6 +3,7 @@ import { useStore } from './store/useStore';
 import { useAuthStore } from './store/useAuthStore';
 import { usePollingSync } from './hooks/usePollingSync';
 import { LoginForm } from './components/LoginForm';
+import { DocumentList } from './components/DocumentList';
 import { XmlEditor } from './components/XmlEditor';
 import { AnnotationPanel } from './components/AnnotationPanel';
 import { AnnotationForm } from './components/AnnotationForm';
@@ -15,9 +16,10 @@ interface PendingAnnotation {
 }
 
 const App: React.FC = () => {
-  const loadDocument = useStore((s) => s.loadDocument);
+  const loadDocumentList = useStore((s) => s.loadDocumentList);
   const loading = useStore((s) => s.loading);
   const document = useStore((s) => s.document);
+  const deselectDocument = useStore((s) => s.deselectDocument);
   const setCurrentUser = useStore((s) => s.setCurrentUser);
 
   const currentAuth = useAuthStore((s) => s.currentUser);
@@ -32,10 +34,10 @@ const App: React.FC = () => {
     if (currentAuth) setCurrentUser(currentAuth.username);
   }, [currentAuth, setCurrentUser]);
 
-  // Load on mount (only when authenticated)
+  // Load document list when authenticated
   useEffect(() => {
-    if (currentAuth) loadDocument();
-  }, [currentAuth, loadDocument]);
+    if (currentAuth) loadDocumentList();
+  }, [currentAuth, loadDocumentList]);
 
   // Polling sync (fallback / additional sync)
   usePollingSync(4000);
@@ -56,12 +58,12 @@ const App: React.FC = () => {
   // ── Not logged in ──────────────────────────────────────────
   if (!currentAuth) return <LoginForm />;
 
-  // ── Loading ────────────────────────────────────────────────
+  // ── Loading (initial doc list) ─────────────────────────────
   if (loading && !document) {
     return (
       <div className="loading-screen">
         <div className="spinner" />
-        <p>Loading document…</p>
+        <p>Ładowanie…</p>
       </div>
     );
   }
@@ -70,10 +72,21 @@ const App: React.FC = () => {
     <div className="app">
       <header className="app-header">
         <div className="header-left">
+          {document ? (
+            <button
+              className="btn-back"
+              onClick={deselectDocument}
+              title="Wróć do listy"
+            >
+              ← Lista
+            </button>
+          ) : null}
           <h1 className="app-title">
             <span className="logo">{'</>'}</span> XML Organizer
           </h1>
-          <span className="app-subtitle">Collaborative XML Editor · POC</span>
+          {document && (
+            <span className="app-subtitle doc-name-subtitle">{document.name}</span>
+          )}
         </div>
 
         {/* User info + actions */}
@@ -96,10 +109,17 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      <main className="app-main">
-        <XmlEditor onRequestAnnotation={openAnnotationForm} />
-        <AnnotationPanel onAddAnnotation={() => openAnnotationForm('document', 'document')} />
-      </main>
+      {/* ── Document list or editor ── */}
+      {document ? (
+        <main className="app-main">
+          <XmlEditor onRequestAnnotation={openAnnotationForm} />
+          <AnnotationPanel onAddAnnotation={() => openAnnotationForm('document', 'document')} />
+        </main>
+      ) : (
+        <main className="app-main-list">
+          <DocumentList />
+        </main>
+      )}
 
       {showForm && (
         <AnnotationForm

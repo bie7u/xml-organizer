@@ -1,7 +1,10 @@
 import { create } from 'zustand';
-import type { Annotation, XMLDocument } from '../types';
+import type { Annotation, XMLDocument, XMLDocumentMeta } from '../types';
 import {
+  listDocuments,
   getDocument,
+  createDocument,
+  deleteDocument as apiDeleteDocument,
   updateDocument,
   addAnnotation,
   deleteAnnotation,
@@ -10,18 +13,23 @@ import {
 const BROADCAST_CHANNEL = 'xml_organizer_sync';
 
 type BroadcastMsg =
-  | { type: 'DOC_UPDATE'; content: string; author: string }
-  | { type: 'ANNOTATION_ADD'; annotation: Annotation }
-  | { type: 'ANNOTATION_DELETE'; id: string };
+  | { type: 'DOC_UPDATE'; docId: string; content: string; author: string }
+  | { type: 'ANNOTATION_ADD'; docId: string; annotation: Annotation }
+  | { type: 'ANNOTATION_DELETE'; docId: string; id: string };
 
 interface StoreState {
+  documentList: XMLDocumentMeta[];
   document: XMLDocument | null;
   currentUser: string;
   activeAnnotationId: string | null;
   loading: boolean;
 
   // Actions
-  loadDocument: () => Promise<void>;
+  loadDocumentList: () => Promise<void>;
+  selectDocument: (id: string) => Promise<void>;
+  deselectDocument: () => void;
+  createDocument: (name: string) => Promise<XMLDocument>;
+  deleteDocument: (id: string) => Promise<void>;
   setCurrentUser: (user: string) => void;
   setContent: (content: string) => void;
   commitContent: () => Promise<void>;
@@ -48,15 +56,41 @@ export const useStore = create<StoreState>((set, get) => {
   }
 
   return {
+    documentList: [],
     document: null,
     currentUser: 'Alice',
     activeAnnotationId: null,
     loading: false,
 
-    loadDocument: async () => {
+    loadDocumentList: async () => {
       set({ loading: true });
-      const doc = await getDocument();
+      const list = await listDocuments();
+      set({ documentList: list, loading: false });
+    },
+
+    selectDocument: async (id) => {
+      set({ loading: true });
+      const doc = await getDocument(id);
       set({ document: doc, loading: false });
+    },
+
+    deselectDocument: () => {
+      set({ document: null });
+    },
+
+    createDocument: async (name) => {
+      const doc = await createDocument(name);
+      const list = await listDocuments();
+      set({ documentList: list });
+      return doc;
+    },
+
+    deleteDocument: async (id) => {
+      await apiDeleteDocument(id);
+      set((state) => ({
+        documentList: state.documentList.filter((d) => d.id !== id),
+        document: state.document?.id === id ? null : state.document,
+      }));
     },
 
     setCurrentUser: (user) => set({ currentUser: user }),
@@ -70,9 +104,11 @@ export const useStore = create<StoreState>((set, get) => {
     commitContent: async () => {
       const { document, currentUser } = get();
       if (!document) return;
-      await updateDocument(document.content);
+      const updated = await updateDocument(document.id, document.content);
+      set((state) => ({ document: state.document ? { ...state.document, updatedAt: updated.updatedAt } : null }));
       const msg: BroadcastMsg = {
         type: 'DOC_UPDATE',
+        docId: document.id,
         content: document.content,
         author: currentUser,
       };
@@ -80,18 +116,22 @@ export const useStore = create<StoreState>((set, get) => {
     },
 
     addAnnotation: async (annotation) => {
-      await addAnnotation(annotation);
+      const { document } = get();
+      if (!document) return;
+      await addAnnotation(document.id, annotation);
       set((state) => ({
         document: state.document
           ? { ...state.document, annotations: [...state.document.annotations, annotation] }
           : null,
       }));
-      const msg: BroadcastMsg = { type: 'ANNOTATION_ADD', annotation };
+      const msg: BroadcastMsg = { type: 'ANNOTATION_ADD', docId: document.id, annotation };
       channel?.postMessage(msg);
     },
 
     removeAnnotation: async (id) => {
-      await deleteAnnotation(id);
+      const { document } = get();
+      if (!document) return;
+      await deleteAnnotation(document.id, id);
       set((state) => ({
         document: state.document
           ? {
@@ -101,21 +141,23 @@ export const useStore = create<StoreState>((set, get) => {
           : null,
         activeAnnotationId: state.activeAnnotationId === id ? null : state.activeAnnotationId,
       }));
-      const msg: BroadcastMsg = { type: 'ANNOTATION_DELETE', id };
+      const msg: BroadcastMsg = { type: 'ANNOTATION_DELETE', docId: document.id, id };
       channel?.postMessage(msg);
     },
 
     setActiveAnnotation: (id) => set({ activeAnnotationId: id }),
 
     applyBroadcast: (msg) => {
+      const { document } = get();
       if (msg.type === 'DOC_UPDATE') {
+        if (document?.id !== msg.docId) return;
         set((state) => ({
           document: state.document ? { ...state.document, content: msg.content } : null,
         }));
       } else if (msg.type === 'ANNOTATION_ADD') {
+        if (document?.id !== msg.docId) return;
         set((state) => {
           if (!state.document) return state;
-          // avoid duplicates
           const exists = state.document.annotations.some((a) => a.id === msg.annotation.id);
           if (exists) return state;
           return {
@@ -126,6 +168,7 @@ export const useStore = create<StoreState>((set, get) => {
           };
         });
       } else if (msg.type === 'ANNOTATION_DELETE') {
+        if (document?.id !== msg.docId) return;
         set((state) => ({
           document: state.document
             ? {

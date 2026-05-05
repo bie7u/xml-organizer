@@ -19,8 +19,17 @@ export interface Annotation {
 
 export interface XMLDocument {
   id: string;
+  name: string;
   content: string;
   annotations: Annotation[];
+  updatedAt: string; // ISO string
+}
+
+export interface XMLDocumentMeta {
+  id: string;
+  name: string;
+  annotationCount: number;
+  updatedAt: string;
 }
 
 export interface SimulatedUser {

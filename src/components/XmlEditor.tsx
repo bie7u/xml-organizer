@@ -10,6 +10,19 @@ interface Props {
   onRequestAnnotation: (type: Annotation['type'], target: Annotation['target']) => void;
 }
 
+/** Validate XML using the browser's DOMParser. Returns an error message or null. */
+function validateXml(content: string): string | null {
+  if (!content.trim()) return null;
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(content, 'application/xml');
+  const error = doc.querySelector('parsererror');
+  if (!error) return null;
+  // Extract the first meaningful line from the error text
+  const text = error.textContent ?? 'Nieprawidłowy XML';
+  const firstLine = text.split('\n').find((l) => l.trim()) ?? text;
+  return firstLine.trim();
+}
+
 export const XmlEditor: React.FC<Props> = ({ onRequestAnnotation }) => {
   const [mode, setMode] = useState<EditorMode>('edit');
   const content = useStore((s) => s.document?.content ?? '');
@@ -22,6 +35,15 @@ export const XmlEditor: React.FC<Props> = ({ onRequestAnnotation }) => {
   const highlightRef = useRef<HTMLDivElement>(null);
 
   const tags = useMemo(() => extractTags(content), [content]);
+
+  // XML validation (debounced - runs after content stabilises for 400 ms)
+  const [xmlError, setXmlError] = useState<string | null>(null);
+  useEffect(() => {
+    const tid = setTimeout(() => {
+      setXmlError(validateXml(content));
+    }, 400);
+    return () => clearTimeout(tid);
+  }, [content]);
 
   // Build a set of highlighted line numbers from annotations
   const highlightedLines = useMemo(() => {
@@ -106,7 +128,6 @@ export const XmlEditor: React.FC<Props> = ({ onRequestAnnotation }) => {
   );
 
   // Render line-number gutter + row-level highlight stripes.
-  // Text is NOT repeated here – only the gutter numbers and background colours.
   const renderHighlight = useCallback(() => {
     if (!content) return null;
     const lines = content.split('\n');
@@ -165,6 +186,14 @@ export const XmlEditor: React.FC<Props> = ({ onRequestAnnotation }) => {
         </div>
       </div>
 
+      {/* XML validation error banner */}
+      {xmlError && (
+        <div className="xml-validation-error" role="alert">
+          <span className="xml-validation-icon">⚠</span>
+          <span className="xml-validation-msg">{xmlError}</span>
+        </div>
+      )}
+
       <div className="editor-body">
         {mode === 'edit' ? (
           <>
@@ -176,7 +205,7 @@ export const XmlEditor: React.FC<Props> = ({ onRequestAnnotation }) => {
             {/* Actual textarea */}
             <textarea
               ref={textareaRef}
-              className="editor-textarea"
+              className={`editor-textarea${xmlError ? ' editor-textarea-invalid' : ''}`}
               value={content}
               onChange={handleChange}
               onBlur={handleBlur}
@@ -193,6 +222,11 @@ export const XmlEditor: React.FC<Props> = ({ onRequestAnnotation }) => {
       <div className="editor-footer">
         <span>Lines: {content.split('\n').length}</span>
         <span>Tags: {tags.length}</span>
+        {xmlError ? (
+          <span className="footer-invalid">✗ Nieprawidłowy XML</span>
+        ) : content.trim() ? (
+          <span className="footer-valid">✓ Poprawny XML</span>
+        ) : null}
         {mode === 'edit' ? (
           <span className="hint">Blur to save · Right-click to annotate</span>
         ) : (
