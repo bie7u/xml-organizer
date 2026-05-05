@@ -1,13 +1,17 @@
-import React, { useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useRef, useEffect, useCallback, useMemo, useState } from 'react';
 import { useStore } from '../store/useStore';
 import { extractTags, lineToOffset, offsetToLine } from '../utils/xmlParser';
 import type { Annotation, RangeTarget } from '../types';
+import { XmlPreview } from './XmlPreview';
+
+type EditorMode = 'edit' | 'preview';
 
 interface Props {
   onRequestAnnotation: (type: Annotation['type'], target: Annotation['target']) => void;
 }
 
 export const XmlEditor: React.FC<Props> = ({ onRequestAnnotation }) => {
+  const [mode, setMode] = useState<EditorMode>('edit');
   const content = useStore((s) => s.document?.content ?? '');
   const annotations = useStore((s) => s.document?.annotations ?? []);
   const activeAnnotationId = useStore((s) => s.activeAnnotationId);
@@ -123,42 +127,77 @@ export const XmlEditor: React.FC<Props> = ({ onRequestAnnotation }) => {
   return (
     <div className="xml-editor-container">
       <div className="editor-toolbar">
-        <span className="toolbar-title">XML Editor</span>
+        <div className="toolbar-left">
+          <span className="toolbar-title">XML Editor</span>
+          <div className="mode-toggle" role="group" aria-label="Editor mode">
+            <button
+              className={`mode-btn${mode === 'edit' ? ' mode-btn-active' : ''}`}
+              onClick={() => setMode('edit')}
+              title="Edit mode"
+            >
+              ✏️ Edit
+            </button>
+            <button
+              className={`mode-btn${mode === 'preview' ? ' mode-btn-active' : ''}`}
+              onClick={() => setMode('preview')}
+              title="Preview mode"
+            >
+              👁 Preview
+            </button>
+          </div>
+        </div>
         <div className="toolbar-actions">
-          <button
-            className="btn-sm"
-            title="Annotate whole document"
-            onClick={() => onRequestAnnotation('document', 'document')}
-          >
-            + Doc annotation
-          </button>
-          <span className="hint">Right-click in editor to annotate line / selection</span>
+          {mode === 'edit' && (
+            <>
+              <button
+                className="btn-sm"
+                title="Annotate whole document"
+                onClick={() => onRequestAnnotation('document', 'document')}
+              >
+                + Doc annotation
+              </button>
+              <span className="hint">Right-click in editor to annotate line / selection</span>
+            </>
+          )}
+          {mode === 'preview' && (
+            <span className="hint">Click a line to view its annotations</span>
+          )}
         </div>
       </div>
 
       <div className="editor-body">
-        {/* Line highlight overlay */}
-        <div ref={highlightRef} className="editor-highlight" aria-hidden="true">
-          {renderHighlight()}
-        </div>
+        {mode === 'edit' ? (
+          <>
+            {/* Line highlight overlay */}
+            <div ref={highlightRef} className="editor-highlight" aria-hidden="true">
+              {renderHighlight()}
+            </div>
 
-        {/* Actual textarea */}
-        <textarea
-          ref={textareaRef}
-          className="editor-textarea"
-          value={content}
-          onChange={handleChange}
-          onBlur={handleBlur}
-          onContextMenu={handleContextMenu}
-          spellCheck={false}
-          wrap="off"
-        />
+            {/* Actual textarea */}
+            <textarea
+              ref={textareaRef}
+              className="editor-textarea"
+              value={content}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              onContextMenu={handleContextMenu}
+              spellCheck={false}
+              wrap="off"
+            />
+          </>
+        ) : (
+          <XmlPreview />
+        )}
       </div>
 
       <div className="editor-footer">
         <span>Lines: {content.split('\n').length}</span>
         <span>Tags: {tags.length}</span>
-        <span className="hint">Blur to save · Right-click to annotate</span>
+        {mode === 'edit' ? (
+          <span className="hint">Blur to save · Right-click to annotate</span>
+        ) : (
+          <span className="hint">Read-only · Switch to Edit to make changes</span>
+        )}
       </div>
     </div>
   );

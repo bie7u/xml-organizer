@@ -188,6 +188,13 @@ html, body, #root {
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+  gap: 10px;
+}
+
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .toolbar-title {
@@ -196,6 +203,40 @@ html, body, #root {
   color: var(--text-strong);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+}
+
+/* Mode toggle button group */
+.mode-toggle {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.mode-btn {
+  padding: 3px 10px;
+  font-size: 0.72rem;
+  font-family: var(--sans);
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.mode-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.mode-btn-active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.mode-btn-active:hover {
+  background: var(--accent);
+  color: #fff;
 }
 
 .toolbar-actions {
@@ -634,3 +675,132 @@ html, body, #root {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* ============================================================
+   Preview Mode
+   ============================================================ */
+.xml-preview-container {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  overflow-x: auto;
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 20px;
+  padding: 10px 0;
+}
+
+.preview-line {
+  display: flex;
+  align-items: center;
+  min-height: 20px;
+  width: max-content;
+  min-width: 100%;
+  cursor: pointer;
+  padding-right: 16px;
+  transition: background 0.1s;
+  position: relative;
+}
+
+.preview-line:hover {
+  background: var(--bg-hover);
+}
+
+.preview-line-annotated {
+  background: var(--line-annotated);
+}
+
+.preview-line-annotated:hover {
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+.preview-line-selected {
+  background: var(--line-active) !important;
+}
+
+.preview-line-text {
+  flex: 1;
+  white-space: pre;
+  color: var(--text);
+  user-select: text;
+}
+
+.preview-badge {
+  flex-shrink: 0;
+  margin-left: 10px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.65rem;
+  font-family: var(--sans);
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  user-select: none;
+}
+
+/* Inline annotation popup — rendered as a sibling row */
+.preview-popup {
+  padding: 10px 14px 10px 58px;
+  background: var(--bg-surface);
+  border-left: 3px solid var(--accent);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 100%;
+  width: max-content;
+}
+
+.preview-popup-empty {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-family: var(--sans);
+  font-style: italic;
+}
+
+.preview-popup-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.preview-popup-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.preview-popup-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--sans);
+}
+
+.preview-popup-author {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+.preview-popup-date {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+.preview-popup-text {
+  font-size: 0.82rem;
+  color: var(--text);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--sans);
+}
