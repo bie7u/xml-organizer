@@ -1,5 +1,8 @@
 # SQLite database file created at runtime
 backend/data/
+
+# Local production environment variables (never commit)
+.env
 logs
 *.log
 npm-debug.log*

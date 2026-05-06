@@ -1,0 +1,33 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      PORT: 3001
+      DB_PATH: /data/xml_organizer.db
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set in .env}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost}
+    volumes:
+      - db_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO /dev/null http://localhost:3001/api/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${APP_PORT:-80}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  db_data:
